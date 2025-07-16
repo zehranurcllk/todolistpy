@@ -1,0 +1,177 @@
+import json
+import os
+from datetime import datetime
+
+DOSYA_ADI = "todolist.json"
+
+
+def gorevleri_oku():
+    if not os.path.exists(DOSYA_ADI):
+        return []
+    try:
+        with open(DOSYA_ADI, "r", encoding="utf-8") as dosya:
+            return json.load(dosya)
+    except Exception as e:
+        print(f"[HATA] Görevler okunamadı: {e}")
+        return []
+
+
+def gorevleri_kaydet(gorevler):
+    try:
+        with open(DOSYA_ADI, "w", encoding="utf-8") as dosya:
+            json.dump(gorevler, dosya, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"[HATA] Görevler kaydedilemedi... {e}")
+
+
+def gorevleri_listele(gorevler):
+    if not gorevler:
+        print("\n Henüz bir görev eklenmedi!!..")
+        return
+    gorevler_sirali = sorted(gorevler, key=lambda x: x["onem"], reverse=True)
+    print("\n----- GÖREV LİSTESİ -----")
+    for i, gorev in enumerate(gorevler_sirali, 1):
+        durum = "+" if gorev["tamamlandi"] else "-"
+        print(f"{i}. {gorev['ad']} (Önem: {gorev['onem']}) [Tarih: {gorev['tarih']}] [{durum}]")
+    print("--------------------------")
+
+
+def gorev_ekle(gorevler):
+    ad = input("Görev Adı: ").strip()
+    if not ad:
+        print("[UYARI] Boş görev eklenemez!..")
+        return
+    while True:
+        try:
+            onem = int(input("Önem Derecesi (1=Düşük, 2=Orta, 3=Yüksek): "))
+            if onem in [1, 2, 3]:
+                break
+            else:
+                print("1, 2 veya 3 girin.")
+        except ValueError:
+            print("Sayı girin!..")
+    tarih = input("Tarih (YYYY-AA-GG): ").strip()
+    try:
+        datetime.strptime(tarih, "%Y-%m-%d")
+    except ValueError:
+        print("Geçersiz tarih girildi bugünün tarihi giriliyor.")
+        tarih = datetime.today().strftime("%Y-%m-%d")
+
+    yeni_gorev = {
+        "ad": ad,
+        "onem": onem,
+        "tarih": tarih,
+        "tamamlandi": False
+    }
+    gorevler.append(yeni_gorev)
+    gorevleri_kaydet(gorevler)
+    print("Görev başarıyla eklendi:))")
+
+
+def gorev_duzenle(gorevler):
+    if not gorevler:
+        print("Düzenlenecek bir görev yok!.")
+        return
+    gorevleri_listele(gorevler)
+    try:
+        secim = int(input("Düzenlenecek görev numarası: ")) - 1
+        if 0 <= secim < len(gorevler):
+            yeni_ad = input("Yeni görev adı: ").strip()
+            if yeni_ad:
+                gorevler[secim]["ad"] = yeni_ad
+            onem = int(input("Yeni önem derecesi (1-3): "))
+            if onem in [1, 2, 3]:
+                gorevler[secim]["onem"] = onem
+            tarih = input("Yeni tarih (YYYY-AA-GG): ").strip()
+            try:
+                datetime.strptime(tarih, "%Y-%m-%d")
+                gorevler[secim]["tarih"] = tarih
+            except ValueError:
+                print("Tarih değişmedi.")
+            gorevleri_kaydet(gorevler)
+            print("Görev güncellendi:))")
+        else:
+            print("Geçersiz görev numarası!")
+    except ValueError:
+        print("Sayı girin!")
+
+
+def gorev_sil(gorevler):
+    if not gorevler:
+        print("Silinecek bir görev yok!!...")
+        return
+    gorevleri_listele(gorevler)
+    try:
+        secim = int(input("Silinecek görev numarası: ")) - 1
+        if 0 <= secim < len(gorevler):
+            silinen = gorevler.pop(secim)
+            gorevleri_kaydet(gorevler)
+            print(f"Silindi: {silinen['ad']}")
+        else:
+            print("Geçersiz görev numarası!.")
+    except ValueError:
+        print("Sayı girin!")
+
+
+def gorev_tamamla(gorevler):
+    if not gorevler:
+        print("Tamamlanacak bir görev yok.")
+        return
+    gorevleri_listele(gorevler)
+    try:
+        secim = int(input("Tamamlandı olarak işaretlenecek görev numarası: ")) - 1
+        if 0 <= secim < len(gorevler):
+            gorevler[secim]["tamamlandi"] = True
+            gorevleri_kaydet(gorevler)
+            print("Görev tamamlandı!")
+        else:
+            print("Geçersiz görev numarası.")
+    except ValueError:
+        print("Sayı girin!")
+
+def gorev_ara(gorevler):
+    kelime = input("Aramak istediğiniz kelime: ").strip().lower()
+    sonuclar = [g for g in gorevler if kelime in g["ad"].lower()]
+    if not sonuclar:
+        print("Eşleşen görev bulunamadı.")
+    else:
+        print("\n--- ARAMA SONUÇLARI ---")
+        for i, gorev in enumerate(sonuclar, 1):
+            durum = "✓" if gorev["tamamlandi"] else "✗"
+            print(f"{i}. {gorev['ad']} (Önem: {gorev['onem']}) [Tarih: {gorev['tarih']}] [{durum}]")
+        print("------------------------")
+
+
+def ana_menu():
+    while True:
+        gorevler = gorevleri_oku()
+        print("\n--- TO DO LİST UYGULAMASI ---")
+        print("1. Görevleri Listele")
+        print("2. Yeni Görev Ekle")
+        print("3. Görev Düzenle")
+        print("4. Görev Sil")
+        print("5. Görev Tamamla")
+        print("6. Görev Ara")
+        print("7. Çıkış")
+        secim = input("Seçiminiz (1-7): ").strip()
+
+        if secim == "1":
+            gorevleri_listele(gorevler)
+        elif secim == "2":
+            gorev_ekle(gorevler)
+        elif secim == "3":
+            gorev_duzenle(gorevler)
+        elif secim == "4":
+            gorev_sil(gorevler)
+        elif secim == "5":
+            gorev_tamamla(gorevler)
+        elif secim == "6":
+            gorev_ara(gorevler)
+        elif secim == "7":
+            print(" TO DO LİST PROGRAMINDAN ÇIKILIYORR....")
+            break
+        else:
+            print("Lütfen 1-7 arasında bir seçim yapın.")
+
+if __name__ == "__main__":
+    ana_menu()
